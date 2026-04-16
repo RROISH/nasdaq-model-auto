@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>纳指买卖模型 v3.0 | 三维度优化版</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -40,7 +43,6 @@
             font-size: 16px; background: white;
         }
         
-        /* 信号卡片 */
         .signal-card {
             padding: 25px; border-radius: 16px; text-align: center; margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); color: white;
@@ -58,7 +60,6 @@
         .signal-title { font-size: 28px; font-weight: bold; margin-bottom: 5px; }
         .signal-desc { font-size: 14px; opacity: 0.95; }
         
-        /* 综合评分 */
         .score-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px; border-radius: 16px; margin-bottom: 20px;
@@ -75,7 +76,6 @@
             transition: width 0.5s ease; box-shadow: 0 0 10px rgba(255,255,255,0.5);
         }
         
-        /* 三维度评分 */
         .dimensions {
             background: #f8fafc; padding: 20px; border-radius: 16px;
             margin-bottom: 20px;
@@ -109,7 +109,6 @@
             text-align: right; font-size: 11px; color: #94a3b8; margin-bottom: 12px; padding-left: 90px;
         }
         
-        /* 市场数据 */
         .metrics-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
             margin-bottom: 20px;
@@ -124,15 +123,19 @@
         .positive { color: #10b981; }
         .negative { color: #ef4444; }
         
-        /* 图表 */
         .chart-container {
             background: #f8fafc; padding: 15px; border-radius: 12px;
-            margin-bottom: 20px; height: 280px; position: relative;
+            margin-bottom: 20px; height: 320px; position: relative;
         }
         .chart-title { font-size: 14px; color: #64748b; margin-bottom: 10px; text-align: center; }
-        canvas { width: 100%; height: 220px; }
+        canvas { width: 100%; height: 260px; }
+        .chart-legend {
+            display: flex; justify-content: center; gap: 15px; margin-top: 5px;
+            font-size: 11px; color: #64748b;
+        }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
         
-        /* 统计 */
         .stats-section {
             background: #f0f4f8; padding: 15px; border-radius: 12px; margin-top: 20px;
         }
@@ -174,28 +177,49 @@
     </div>
 
     <script>
+        // 强制防缓存
+        const CACHE_BUSTER = '?_=' + new Date().getTime();
         let currentData = null;
         let availableDates = [];
         
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('页面加载，开始获取数据...');
             await loadDataFile();
             if (availableDates.length > 0) {
-                document.getElementById('dateInput').value = availableDates[availableDates.length - 1];
+                const latestDate = availableDates[availableDates.length - 1];
+                console.log('最新日期:', latestDate);
+                document.getElementById('dateInput').value = latestDate;
                 loadData();
             }
         });
         
         async function loadDataFile() {
             try {
-                const response = await fetch('data/nasdaq_data.json?t=' + Date.now());
-                if (!response.ok) throw new Error('加载失败');
+                const url = 'data/nasdaq_data.json' + CACHE_BUSTER;
+                console.log('请求URL:', url);
+                
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                });
+                
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                
                 currentData = await response.json();
                 availableDates = Object.keys(currentData.daily_data || {}).sort();
-                const updateTime = currentData.last_update ? new Date(currentData.last_update).toLocaleString('zh-CN') : '未知';
+                
+                console.log('✅ 数据加载成功');
+                console.log('📅 数据范围:', availableDates[0], '至', availableDates[availableDates.length - 1]);
+                console.log('📊 总交易日:', availableDates.length);
+                
+                const updateTime = currentData.last_update ? 
+                    new Date(currentData.last_update).toLocaleString('zh-CN') : '未知';
                 document.getElementById('lastUpdate').textContent = '数据更新时间: ' + updateTime;
+                
             } catch (error) {
+                console.error('❌ 数据加载失败:', error);
                 document.getElementById('content').innerHTML = 
-                    '<div class="error">数据加载失败，请刷新页面重试</div>';
+                    '<div class="error">数据加载失败<br>请按 Ctrl+F5 强制刷新<br>或清除浏览器缓存后重试</div>';
             }
         }
         
@@ -250,6 +274,7 @@
             const signalClass = getSignalClass(score);
             const emoji = getSignalEmoji(score);
             const details = data.details || {};
+            const position = details.position_52w !== undefined ? details.position_52w : '--';
             
             const content = `
                 <div class="signal-card ${signalClass}">
@@ -276,7 +301,7 @@
                         </div>
                         <div class="dimension-value">/40</div>
                     </div>
-                    <div class="dimension-sub">近一年位置: ${details.position_52w !== undefined ? details.position_52w : '--'}%</div>
+                    <div class="dimension-sub">近一年位置: ${position}% ${position !== '--' ? (position > 90 ? '(高位)' : position < 10 ? '(低位)' : '') : ''}</div>
                     
                     <div class="dimension-row">
                         <div class="dimension-label">恐慌维度</div>
@@ -285,7 +310,7 @@
                         </div>
                         <div class="dimension-value">/35</div>
                     </div>
-                    <div class="dimension-sub">VIX指数: ${data.vix ? data.vix.toFixed(2) : '--'}</div>
+                    <div class="dimension-sub">VIX指数: ${data.vix ? data.vix.toFixed(2) : '--'} ${data.vix > 35 ? '(极度恐慌)' : data.vix < 15 ? '(极度低迷)' : ''}</div>
                     
                     <div class="dimension-row">
                         <div class="dimension-label">趋势维度</div>
@@ -317,14 +342,20 @@
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">近一年位置</div>
-                        <div class="metric-value">${details.position_52w !== undefined ? details.position_52w + '%' : '--'}</div>
-                        <div class="metric-sub">${details.position_52w > 90 ? '历史高位' : details.position_52w < 10 ? '历史低位' : '中间位置'}</div>
+                        <div class="metric-value">${position}${position !== '--' ? '%' : ''}</div>
+                        <div class="metric-sub">${position > 90 ? '历史高位' : position < 10 ? '历史低位' : position > 70 ? '偏高' : position < 30 ? '偏低' : '中间位置'}</div>
                     </div>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">近一年评分走势与信号分布</div>
                     <canvas id="scoreChart"></canvas>
+                    <div class="chart-legend">
+                        <div class="legend-item"><div class="legend-dot" style="background: #667eea"></div><span>评分走势</span></div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #10b981"></div><span>买入信号</span></div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #ef4444"></div><span>卖出信号</span></div>
+                        <div class="legend-item"><div class="legend-dot" style="border: 2px solid #f59e0b; background: transparent;"></div><span>当前位置</span></div>
+                    </div>
                 </div>
                 
                 <div class="stats-section">
@@ -353,27 +384,64 @@
             
             const width = rect.width;
             const height = rect.height;
+            const padding = { top: 20, right: 10, bottom: 40, left: 40 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
             
+            // 获取近一年数据（250个交易日）
             const endIdx = availableDates.indexOf(currentDate);
-            const startIdx = Math.max(0, endIdx - 250);
+            const startIdx = Math.max(0, endIdx - 249);
             const dates = availableDates.slice(startIdx, endIdx + 1);
             
-            if (dates.length < 2) return;
+            console.log('📊 绘制图表:', dates.length, '个交易日');
+            console.log('   从', dates[0], '到', dates[dates.length - 1]);
+            
+            if (dates.length < 2) {
+                console.warn('数据点不足，无法绘制图表');
+                return;
+            }
             
             const scores = dates.map(d => currentData.daily_data[d].score);
+            const minScore = 0;
+            const maxScore = 100;
             
             ctx.clearRect(0, 0, width, height);
             
-            // 绘制评分区域
+            // 绘制网格线
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding.top + (i / 4) * chartHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+                
+                // Y轴标签 (100, 75, 50, 25, 0)
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText((100 - i * 25).toString(), padding.left - 5, y + 3);
+            }
+            
+            // 绘制评分区域填充
+            const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
+            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+            
             ctx.beginPath();
-            ctx.fillStyle = 'rgba(102, 126, 234, 0.2)';
+            ctx.fillStyle = gradient;
             dates.forEach((date, i) => {
-                const x = (i / (dates.length - 1)) * width;
-                const y = height - (scores[i] / 100) * height * 0.8 - height * 0.1;
-                if (i === 0) ctx.moveTo(x, height);
-                ctx.lineTo(x, y);
+                const x = padding.left + (i / (dates.length - 1)) * chartWidth;
+                const y = padding.top + (1 - scores[i] / 100) * chartHeight;
+                if (i === 0) {
+                    ctx.moveTo(x, padding.top + chartHeight);
+                    ctx.lineTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
                 if (i === dates.length - 1) {
-                    ctx.lineTo(x, height);
+                    ctx.lineTo(x, padding.top + chartHeight);
                     ctx.closePath();
                 }
             });
@@ -384,36 +452,52 @@
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
             dates.forEach((date, i) => {
-                const x = (i / (dates.length - 1)) * width;
-                const y = height - (scores[i] / 100) * height * 0.8 - height * 0.1;
+                const x = padding.left + (i / (dates.length - 1)) * chartWidth;
+                const y = padding.top + (1 - scores[i] / 100) * chartHeight;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
             ctx.stroke();
             
-            // 标记当前点
-            const currIdx = dates.indexOf(currentDate);
-            if (currIdx >= 0) {
-                const x = (currIdx / (dates.length - 1)) * width;
-                const y = height - (scores[currIdx] / 100) * height * 0.8 - height * 0.1;
-                ctx.beginPath();
-                ctx.fillStyle = '#f59e0b';
-                ctx.arc(x, y, 6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
             // 标记买卖信号点
             dates.forEach((date, i) => {
                 const d = currentData.daily_data[date];
                 if (d.score >= 75 || d.score <= 25) {
-                    const x = (i / (dates.length - 1)) * width;
-                    const y = height - (d.score / 100) * height * 0.8 - height * 0.1;
+                    const x = padding.left + (i / (dates.length - 1)) * chartWidth;
+                    const y = padding.top + (1 - d.score / 100) * chartHeight;
                     ctx.beginPath();
                     ctx.fillStyle = d.score >= 75 ? '#10b981' : '#ef4444';
-                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
                     ctx.fill();
                 }
             });
+            
+            // 标记当前位置（黄色圆圈）
+            const currIdx = dates.indexOf(currentDate);
+            if (currIdx >= 0) {
+                const x = padding.left + (currIdx / (dates.length - 1)) * chartWidth;
+                const y = padding.top + (1 - scores[currIdx] / 100) * chartHeight;
+                
+                // 外圈
+                ctx.beginPath();
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 3;
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 内圈
+                ctx.beginPath();
+                ctx.fillStyle = '#f59e0b';
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // X轴时间标签
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(dates[0].substring(5), padding.left, height - 15);
+            ctx.fillText(dates[dates.length - 1].substring(5), width - padding.right, height - 15);
         }
         
         function calculateStats() {
