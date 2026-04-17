@@ -2,236 +2,418 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>纳指加仓模型</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0e1a;color:#f3f4f6;line-height:1.6;padding-bottom:20px}
-.c{max-width:100%;padding:12px}
-.h{text-align:center;padding:14px 0;border-bottom:1px solid #374151;margin-bottom:14px}
-.h h1{font-size:22px;background:linear-gradient(135deg,#00d9ff,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.h p{color:#9ca3af;font-size:12px}
-.st{text-align:center;padding:6px;font-size:12px;color:#9ca3af;margin-bottom:12px;min-height:20px}
-.st .e{color:#ef4444}.st .s{color:#10b981}.st .i{color:#00d9ff}.st .w{color:#f59e0b}
-.cd{background:#1f2937;border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid #374151}
-.cp{text-align:center;padding:10px 0 4px}
-.pv{font-size:42px;font-weight:700;background:linear-gradient(135deg,#f3f4f6,#00d9ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.pl{color:#9ca3af;font-size:12px;margin-top:4px}
-.pc{font-size:13px;margin-top:6px;font-weight:600}
-.rc{text-align:center;padding:14px;border-radius:10px;margin-top:14px;font-weight:700;font-size:16px}
-.r0{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
-.r1{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
-.r2{background:rgba(249,115,22,.15);color:#f97316;border:1px solid rgba(249,115,22,.4)}
-.r3{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
-.rh{background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2)}
-.sr{margin-top:12px;padding:12px;background:#111827;border-radius:10px;border-left:3px solid #00d9ff}
-.rt{font-size:12px;color:#9ca3af;margin-bottom:8px;font-weight:600}
-.tg{display:inline-block;padding:4px 8px;margin:2px;background:rgba(0,217,255,.1);color:#00d9ff;border-radius:6px;font-size:11px;border:1px solid rgba(0,217,255,.2)}
-.sb{margin-top:10px;display:flex;align-items:center;gap:8px}
-.sl{font-size:11px;color:#9ca3af;white-space:nowrap}
-.br{flex:1;height:8px;background:#0a0e1a;border-radius:4px;overflow:hidden}
-.bf{height:100%;border-radius:4px;transition:width .4s}
-.sv{font-size:13px;font-weight:700;color:#00d9ff;min-width:32px;text-align:right}
-.ct{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid #374151}
-.ic{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(0,217,255,.1);color:#00d9ff}
-.mg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.mi{background:#111827;padding:14px 10px;border-radius:10px;text-align:center}
-.mv{font-size:20px;font-weight:700;margin-bottom:4px}
-.ml{font-size:11px;color:#9ca3af}
-.p{color:#10b981}.n{color:#ef4444}.u{color:#00d9ff}.w{color:#f59e0b}
-.his{max-height:420px;overflow-y:auto;padding-right:4px}
-.his::-webkit-scrollbar{width:4px}
-.his::-webkit-scrollbar-track{background:#111827;border-radius:4px}
-.his::-webkit-scrollbar-thumb{background:#374151;border-radius:4px}
-.hi{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111827;border-radius:10px;margin-bottom:8px;border-left:3px solid #374151}
-.hi.l0{border-left-color:#10b981}.hi.l1{border-left-color:#f59e0b}.hi.l2{border-left-color:#f97316}.hi.l3{border-left-color:#ef4444}
-.hd{flex:1}
-.ht{font-size:13px;color:#9ca3af;margin-bottom:2px}
-.hp{font-size:14px;font-weight:600}
-.hr{font-size:11px;color:#9ca3af;margin-top:2px}
-.hb{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
-.b0{background:rgba(16,185,129,.2);color:#10b981}
-.b1{background:rgba(245,158,11,.2);color:#f59e0b}
-.b2{background:rgba(249,115,22,.2);color:#f97316}
-.b3{background:rgba(239,68,68,.2);color:#ef4444}
-.ft{text-align:center;padding:16px;color:#9ca3af;font-size:10px}
-.ec{text-align:center;padding:30px;color:#9ca3af;font-size:14px}
-.rb{padding:8px 20px;border-radius:6px;border:1px solid #00d9ff;background:rgba(0,217,255,.1);color:#00d9ff;font-size:13px;cursor:pointer;margin-top:12px;display:inline-block}
-.test-panel{background:#111827;border-radius:10px;padding:12px;margin-top:12px;font-size:11px;color:#9ca3af;border:1px solid #374151}
-.test-panel b{color:#f3f4f6}
-.test-btn{display:block;width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#f3f4f6;font-size:13px;cursor:pointer;text-align:left}
-.test-btn:hover{background:#374151}
-.test-btn.ok{border-color:#10b981;color:#10b981}
-.test-btn.fail{border-color:#ef4444;color:#ef4444}
-.log{max-height:150px;overflow-y:auto;background:#0a0e1a;padding:8px;border-radius:6px;margin-top:8px;font-family:monospace;font-size:10px;line-height:1.6}
-.log .ok{color:#10b981}.log .fail{color:#ef4444}.log .info{color:#00d9ff}
+:root {
+    --bg: #0f1419; --card: #1a2332; --text: #e0e6ed; 
+    --green: #00d084; --red: #ff4757; --yellow: #ffa502; --orange: #ff7f50;
+    --blue: #3742fa; --gray: #57606f;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { 
+    background: var(--bg); color: var(--text); font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.6; padding-bottom: 40px;
+}
+.container { max-width: 600px; margin: 0 auto; padding: 16px; }
+header { text-align:center; padding: 20px 0; border-bottom: 1px solid var(--card); margin-bottom: 16px; }
+header h1 { font-size: 24px; letter-spacing: 2px; }
+header p { color: var(--gray); font-size: 12px; margin-top: 4px; }
+
+.card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.card-title { font-size: 14px; color: var(--gray); margin-bottom: 12px; display:flex; align-items:center; gap:6px; }
+
+.price-main { text-align:center; padding: 10px 0; }
+.price-num { font-size: 48px; font-weight: 700; letter-spacing: -1px; }
+.price-change { font-size: 18px; margin-top: 4px; }
+.price-up { color: var(--green); } .price-down { color: var(--red); }
+
+.risk-badge { 
+    display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;
+    margin-top: 10px;
+}
+.risk-high { background: rgba(255,71,87,0.2); color: var(--red); border: 1px solid var(--red); }
+.risk-mid { background: rgba(255,127,80,0.2); color: var(--orange); border: 1px solid var(--orange); }
+.risk-low { background: rgba(255,165,2,0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+.risk-min { background: rgba(0,208,132,0.2); color: var(--green); border: 1px solid var(--green); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.stat-item { text-align: center; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; }
+.stat-label { font-size: 11px; color: var(--gray); margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 700; }
+
+.action-box { 
+    padding: 16px; border-radius: 12px; border-left: 4px solid; margin-top: 12px;
+    background: rgba(255,255,255,0.02);
+}
+.action-stop { border-color: var(--red); }
+.action-warn { border-color: var(--orange); }
+.action-ok { border-color: var(--green); }
+.action-text { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.action-sub { font-size: 13px; color: var(--gray); }
+
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-item { 
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.history-item:last-child { border-bottom: none; }
+.history-date { font-size: 13px; color: var(--gray); }
+.history-info { text-align: right; }
+.history-price { font-weight: 600; font-size: 15px; }
+.history-tag { 
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 6px;
+}
+.tag-batch1 { background: var(--green); color: #000; }
+.tag-batch2 { background: var(--yellow); color: #000; }
+.tag-batch3 { background: var(--orange); color: #fff; }
+.tag-batch4 { background: var(--red); color: #fff; }
+
+.divider { height: 1px; background: var(--card); margin: 16px 0; }
+.loading { text-align: center; padding: 40px; color: var(--gray); }
+.footer { text-align: center; padding: 20px; font-size: 11px; color: var(--gray); }
+
+.alert-bar {
+    padding: 14px; border-radius: 12px; margin-bottom: 16px; text-align: center;
+}
+.alert-wait { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); }
+.alert-ready { background: rgba(0,208,132,0.1); border: 1px solid rgba(0,208,132,0.3); }
+.alert-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.alert-desc { font-size: 13px; color: var(--gray); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 2px; }
 </style>
 </head>
 <body>
-<div class="c">
-<div class="h"><h1>纳指加仓模型</h1><p>国内数据源 · 实时计算</p></div>
-<div class="st" id="st"><span class="i">等待测试...</span></div>
-<div id="ca">
-<div class="cd">
-<div class="ct"><div class="ic">T</div>测试工具</div>
-<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">点击下方按钮逐一测试数据源连通性</div>
-<button class="test-btn" id="btn1" onclick="testTx()">1. 测试腾讯财经接口</button>
-<button class="test-btn" id="btn2" onclick="testEm()">2. 测试东方财富接口</button>
-<button class="test-btn" id="btn3" onclick="testDirect()">3. 测试直接加载数据</button>
-<div class="log" id="log"></div>
-<div class="test-panel">
-<b>环境检测:</b><br>
-协议: <span id="proto">--</span><br>
-主机: <span id="host">--</span><br>
-在线状态: <span id="online">--</span>
+<div class="container">
+    <header>
+        <h1>纳指加仓模型</h1>
+        <p>长期持有 · 只抄底 · 不卖出</p>
+    </header>
+
+    <div id="loading" class="loading">正在获取市场数据...</div>
+    <div id="content" style="display:none;">
+        
+        <div id="alertBar" class="alert-bar"></div>
+
+        <div class="card">
+            <div class="card-title">📊 纳斯达克综合指数</div>
+            <div class="price-main">
+                <div id="currentPrice" class="price-num">--</div>
+                <div id="priceChange" class="price-change">--</div>
+                <div id="riskBadge" class="risk-badge"></div>
+            </div>
+            <div class="divider"></div>
+            <div class="grid-3">
+                <div class="stat-item">
+                    <div class="stat-label">1年高点回撤</div>
+                    <div id="statDD" class="stat-value">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">RSI(14)</div>
+                    <div id="statRSI" class="stat-value">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">20日涨幅</div>
+                    <div id="stat20D" class="stat-value">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🎯 新增资金操作建议</div>
+            <div id="actionBox" class="action-box">
+                <div id="actionText" class="action-text">--</div>
+                <div id="actionSub" class="action-sub">--</div>
+            </div>
+            <div style="margin-top:12px; font-size:13px; color:var(--gray);">
+                <div id="nextBuyInfo">--</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📅 历史加仓记录（近10年回测）</div>
+            <div id="historyList" class="history-list"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">💼 模拟持仓状态</div>
+            <div id="positionInfo" style="font-size:14px; line-height:2;"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        数据仅供参考，不构成投资建议<br>
+        模型规则：回撤≥10%/15%/20%/25% 分4批加仓 · 不卖出 · 长期持有
+    </div>
 </div>
-</div>
-</div>
-<div class="ft">仅供参考，不构成投资建议</div>
-</div>
+
 <script>
-function log(msg,cls){
-  var d=document.getElementById('log');
-  d.innerHTML+='<div class="'+(cls||'info')+'">['+new Date().toLocaleTimeString()+'] '+msg+'</div>';
-  d.scrollTop=d.scrollHeight;
-}
-document.getElementById('proto').textContent=location.protocol;
-document.getElementById('host').textContent=location.host||'localhost';
-document.getElementById('online').textContent=navigator.onLine?'在线':'离线';
-if(location.protocol==='file:'){
-  log('警告: 当前使用 file:// 协议，JSONP请求可能被拦截','fail');
-  log('请使用本地HTTP服务器测试 (python -m http.server 8000)','info');
-}
-function jp(url,cp,timeout){
-  return new Promise(function(res,rej){
-    var cb='CB'+Date.now()+Math.floor(Math.random()*1000);
-    var sc=document.createElement('script');
-    sc.src=url+'&'+cp+'='+cb;
-    sc.async=true;
-    var done=false;
-    function finish(e,d){if(done)return;done=true;clean();if(e)rej(e);else res(d)}
-    function clean(){clearTimeout(t);delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc)}
-    sc.onerror=function(){finish(new Error('script load error'))};
-    sc.onload=function(){setTimeout(function(){if(!done)finish(new Error('no callback'))},3000)};
-    window[cb]=function(d){finish(null,d)};
-    var t=setTimeout(function(){finish(new Error('timeout 20s'))},timeout||20000);
-    document.head.appendChild(sc);
-  });
-}
-async function testTx(){
-  log('测试腾讯财经...','info');
-  var btn=document.getElementById('btn1');btn.className='test-btn';
-  try{
-    var url='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=usr_ixic,day,,,10';
-    var d=await jp(url,'_cb',10000);
-    if(d.code===0&&d.data&&d.data.usr_ixic){
-      var arr=d.data.usr_ixic.day||d.data.usr_ixic.qfqday;
-      log('腾讯成功: 返回'+arr.length+'条数据','ok');
-      btn.className='test-btn ok';btn.innerHTML='1. 腾讯财经 ✓ 正常 ('+arr.length+'条)';
-    }else{log('腾讯返回异常','fail');btn.className='test-btn fail';}
-  }catch(e){log('腾讯失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='1. 腾讯财经 ✗ 失败';}
-}
-async function testEm(){
-  log('测试东方财富...','info');
-  var btn=document.getElementById('btn2');btn.className='test-btn';
-  try{
-    var url='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=100.IXIC&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=0&end=20500101&lmt=10';
-    var d=await jp(url,'cb',10000);
-    if(d.rc===0&&d.data&&d.data.klines){
-      log('东财成功: 返回'+d.data.klines.length+'条数据','ok');
-      btn.className='test-btn ok';btn.innerHTML='2. 东方财富 ✓ 正常 ('+d.data.klines.length+'条)';
-    }else{log('东财返回异常: rc='+d.rc,'fail');btn.className='test-btn fail';}
-  }catch(e){log('东财失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='2. 东方财富 ✗ 失败';}
-}
-async function testDirect(){
-  log('直接加载全量数据...','info');
-  var btn=document.getElementById('btn3');btn.className='test-btn';
-  try{await ld();btn.className='test-btn ok';btn.innerHTML='3. 直接加载 ✓ 成功';}
-  catch(e){log('直接加载失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='3. 直接加载 ✗ 失败';}
-}
-const TX_API='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=usr_ixic,day,,,800';
-const EM_API='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=100.IXIC&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=0&end=20500101&lmt=800';
-let D=[],A={},L=[],cd=null;
-function ge(id){return document.getElementById(id)}
-function sa(id,h){ge(id).innerHTML=h}
-async function ld(){
-  sa('st','<span class="i">获取数据中...</span>');
-  try{
-    log('尝试腾讯财经...','info');
-    var d=await jp(TX_API,'_cb',20000);
-    if(d.code===0&&d.data&&d.data.usr_ixic){
-      var arr=d.data.usr_ixic.day||d.data.usr_ixic.qfqday;
-      if(arr&&arr.length){proc(arr);sa('st','<span class="s">'+arr.length+'天数据 (腾讯)</span>');return}
+const INIT_DATA = [{d:'2025-01-02',c:19280.79},{d:'2025-01-03',c:19621.68},{d:'2025-01-06',c:19864.98},{d:'2025-01-07',c:20036.5},{d:'2025-01-08',c:19858.24},{d:'2025-01-09',c:19647.45},{d:'2025-01-10',c:19617.81},{d:'2025-01-13',c:19829.54},{d:'2025-01-14',c:19716.52},{d:'2025-01-15',c:19600.61},{d:'2025-01-16',c:19224.86},{d:'2025-01-17',c:19178.85},{d:'2025-01-21',c:19617.29},{d:'2025-01-22',c:19459.73},{d:'2025-01-23',c:19945.11},{d:'2025-01-24',c:20050.36},{d:'2025-01-27',c:19663.72},{d:'2025-01-28',c:19686.06},{d:'2025-01-29',c:19945.1},{d:'2025-01-30',c:19627.44},{d:'2025-01-31',c:19511.15},{d:'2025-02-03',c:18436.52},{d:'2025-02-04',c:18490.47},{d:'2025-02-05',c:18700.74},{d:'2025-02-06',c:18957.11},{d:'2025-02-07',c:18933.31},{d:'2025-02-10',c:19111.62},{d:'2025-02-11',c:19355.86},{d:'2025-02-12',c:19395.5},{d:'2025-02-13',c:19619.05},{d:'2025-02-14',c:19603.71},{d:'2025-02-18',c:19788.88},{d:'2025-02-19',c:19912.9},{d:'2025-02-20',c:19817.39},{d:'2025-02-21',c:19971.22},{d:'2025-02-24',c:19402.71},{d:'2025-02-25',c:19188.51},{d:'2025-02-26',c:19187.98},{d:'2025-02-27',c:19071.74},{d:'2025-02-28',c:19064.46},{d:'2025-03-03',c:18911.87},{d:'2025-03-04',c:18448.28},{d:'2025-03-05',c:18597.44},{d:'2025-03-06',c:18354.58},{d:'2025-03-07',c:18232.74},{d:'2025-03-10',c:18387.92},{d:'2025-03-11',c:17927.08},{d:'2025-03-12',c:17821.31},{d:'2025-03-13',c:17728.3},{d:'2025-03-14',c:18098.06},{d:'2025-03-17',c:18231.29},{d:'2025-03-18',c:18427.46},{d:'2025-03-19',c:18184.92},{d:'2025-03-20',c:18126.71},{d:'2025-03-21',c:18315.55},{d:'2025-03-24',c:18437.26},{d:'2025-03-25',c:18311.05},{d:'2025-03-26',c:18241.09},{d:'2025-03-27',c:18052.65},{d:'2025-03-28',c:17742.64},{d:'2025-03-31',c:17326.95},{d:'2025-04-01',c:17300.22},{d:'2025-04-02',c:17473.0},{d:'2025-04-03',c:17437.7},{d:'2025-04-04',c:17275.87},{d:'2025-04-07',c:15805.19},{d:'2025-04-08',c:15267.91},{d:'2025-04-09',c:15779.34},{d:'2025-04-10',c:15549.61},{d:'2025-04-11',c:15974.38},{d:'2025-04-14',c:16513.29},{d:'2025-04-15',c:16245.71},{d:'2025-04-16',c:16189.83},{d:'2025-04-17',c:16431.29},{d:'2025-04-18',c:16553.79},{d:'2025-04-21',c:16610.35},{d:'2025-04-22',c:16810.77},{d:'2025-04-23',c:16547.47},{d:'2025-04-24',c:16386.08},{d:'2025-04-25',c:16474.02},{d:'2025-04-28',c:16341.29},{d:'2025-04-29',c:16338.41},{d:'2025-04-30',c:16464.43},{d:'2025-05-01',c:16928.32},{d:'2025-05-02',c:17047.62},{d:'2025-05-05',c:17081.99},{d:'2025-05-06',c:17208.22},{d:'2025-05-07',c:17350.09},{d:'2025-05-08',c:17386.32},{d:'2025-05-09',c:17525.71},{d:'2025-05-12',c:17597.57},{d:'2025-05-13',c:17750.62},{d:'2025-05-14',c:17831.52},{d:'2025-05-15',c:17888.73},{d:'2025-05-16',c:17769.51},{d:'2025-05-19',c:17658.53},{d:'2025-05-20',c:17729.13},{d:'2025-05-21',c:17615.58},{d:'2025-05-22',c:17868.51},{d:'2025-05-23',c:17788.18},{d:'2025-05-26',c:17531.79},{d:'2025-05-27',c:17602.45},{d:'2025-05-28',c:17695.33},{d:'2025-05-29',c:17663.41},{d:'2025-05-30',c:17777.79},{d:'2025-06-02',c:17802.44},{d:'2025-06-03',c:17597.68},{d:'2025-06-04',c:17639.14},{d:'2025-06-05',c:17652.06},{d:'2025-06-06',c:17850.13},{d:'2025-06-09',c:17789.96},{d:'2025-06-10',c:17914.37},{d:'2025-06-11',c:17867.73},{d:'2025-06-12',c:17995.84},{d:'2025-06-13',c:17969.23},{d:'2025-06-16',c:17893.18},{d:'2025-06-17',c:17898.95},{d:'2025-06-18',c:18034.28},{d:'2025-06-19',c:18080.77},{d:'2025-06-20',c:18078.56},{d:'2025-06-23',c:17860.57},{d:'2025-06-24',c:18278.81},{d:'2025-06-25',c:18285.43},{d:'2025-06-26',c:18365.36},{d:'2025-06-27',c:18282.53},{d:'2025-06-30',c:18178.82},{d:'2025-07-01',c:18215.32},{d:'2025-07-02',c:17969.44},{d:'2025-07-03',c:17893.61},{d:'2025-07-04',c:18001.97},{d:'2025-07-07',c:17765.08},{d:'2025-07-08',c:17924.95},{d:'2025-07-09',c:17962.62},{d:'2025-07-10',c:17994.55},{d:'2025-07-11',c:17897.2},{d:'2025-07-14',c:17773.54},{d:'2025-07-15',c:17906.12},{d:'2025-07-16',c:17772.29},{d:'2025-07-17',c:17909.7},{d:'2025-07-18',c:17659.24},{d:'2025-07-21',c:17816.94},{d:'2025-07-22',c:18009.03},{d:'2025-07-23',c:17915.93},{d:'2025-07-24',c:18000.97},{d:'2025-07-25',c:18060.16},{d:'2025-07-28',c:18075.49},{d:'2025-07-29',c:17935.47},{d:'2025-07-30',c:17831.65},{d:'2025-07-31',c:17821.95},{d:'2025-08-01',c:17626.56},{d:'2025-08-04',c:17399.55},{d:'2025-08-05',c:17465.27},{d:'2025-08-06',c:17446.54},{d:'2025-08-07',c:17578.63},{d:'2025-08-08',c:17434.32},{d:'2025-08-11',c:17553.88},{d:'2025-08-12',c:17579.3},{d:'2025-08-13',c:17597.41},{d:'2025-08-14',c:17626.26},{d:'2025-08-15',c:17617.71},{d:'2025-08-18',c:17566.14},{d:'2025-08-19',c:17848.15},{d:'2025-08-20',c:17848.95},{d:'2025-08-21',c:17834.03},{d:'2025-08-22',c:17681.85},{d:'2025-08-25',c:17595.49},{d:'2025-08-26',c:17809.87},{d:'2025-08-27',c:17665.13},{d:'2025-08-28',c:17594.27},{d:'2025-08-29',c:17702.58},{d:'2025-09-01',c:17662.08},{d:'2025-09-02',c:17773.55},{d:'2025-09-03',c:17792.03},{d:'2025-09-04',c:17642.93},{d:'2025-09-05',c:17812.27},{d:'2025-09-08',c:17765.47},{d:'2025-09-09',c:17797.4},{d:'2025-09-10',c:17890.75},{d:'2025-09-11',c:17901.66},{d:'2025-09-12',c:18019.73},{d:'2025-09-15',c:17925.9},{d:'2025-09-16',c:17853.21},{d:'2025-09-17',c:17975.46},{d:'2025-09-18',c:18013.98},{d:'2025-09-19',c:18072.32},{d:'2025-09-22',c:17949.08},{d:'2025-09-23',c:17972.51},{d:'2025-09-24',c:17883.39},{d:'2025-09-25',c:17834.59},{d:'2025-09-26',c:17761.35},{d:'2025-09-29',c:17828.71},{d:'2025-09-30',c:17780.67},{d:'2025-10-01',c:17762.71},{d:'2025-10-02',c:17901.28},{d:'2025-10-03',c:17977.72},{d:'2025-10-06',c:17826.65},{d:'2025-10-07',c:17743.34},{d:'2025-10-08',c:18084.13},{d:'2025-10-09',c:18189.67},{d:'2025-10-10',c:18164.73},{d:'2025-10-13',c:18198.51},{d:'2025-10-14',c:18416.61},{d:'2025-10-15',c:18360.63},{d:'2025-10-16',c:18362.62},{d:'2025-10-17',c:18467.99},{d:'2025-10-20',c:18435.56},{d:'2025-10-21',c:18604.02},{d:'2025-10-22',c:18708.05},{d:'2025-10-23',c:18832.35},{d:'2025-10-24',c:18856.64},{d:'2025-10-27',c:18684.0},{d:'2025-10-28',c:18849.28},{d:'2025-10-29',c:18683.3},{d:'2025-10-30',c:18645.12},{d:'2025-10-31',c:18775.16},{d:'2025-11-03',c:18844.01},{d:'2025-11-04',c:18995.56},{d:'2025-11-05',c:19211.22},{d:'2025-11-06',c:19286.01},{d:'2025-11-07',c:19357.81},{d:'2025-11-10',c:19356.66},{d:'2025-11-11',c:19382.08},{d:'2025-11-12',c:19491.63},{d:'2025-11-13',c:19587.45},{d:'2025-11-14',c:19555.35},{d:'2025-11-17',c:19474.72},{d:'2025-11-18',c:19543.72},{d:'2025-11-19',c:19553.03},{d:'2025-11-20',c:19553.1},{d:'2025-11-21',c:19630.75},{d:'2025-11-24',c:19645.71},{d:'2025-11-25',c:19684.04},{d:'2025-11-26',c:19671.24},{d:'2025-11-27',c:19759.42},{d:'2025-11-28',c:19822.06},{d:'2025-12-01',c:19753.45},{d:'2025-12-02',c:19851.22},{d:'2025-12-03',c:19859.68},{d:'2025-12-04',c:19981.97},{d:'2025-12-05',c:20034.89},{d:'2025-12-08',c:20044.15},{d:'2025-12-09',c:20127.56},{d:'2025-12-10',c:20154.78},{d:'2025-12-11',c:20122.1},{d:'2025-12-12',c:20186.03},{d:'2025-12-15',c:20228.9},{d:'2025-12-16',c:20173.34},{d:'2025-12-17',c:20258.34},{d:'2025-12-18',c:20096.57},{d:'2025-12-19',c:20032.31},{d:'2025-12-22',c:19891.24},{d:'2025-12-23',c:19925.95},{d:'2025-12-24',c:20030.36},{d:'2025-12-26',c:20042.15},{d:'2025-12-29',c:20117.38},{d:'2025-12-30',c:20107.62},{d:'2026-01-02',c:20061.47},{d:'2026-01-05',c:19872.47},{d:'2026-01-06',c:19981.97},{d:'2026-01-07',c:20141.09},{d:'2026-01-08',c:20153.5},{d:'2026-01-09',c:20101.13},{d:'2026-01-12',c:20094.78},{d:'2026-01-13',c:20207.5},{d:'2026-01-14',c:20058.08},{d:'2026-01-15',c:20180.8},{d:'2026-01-16',c:20192.8},{d:'2026-01-20',c:20349.74},{d:'2026-01-21',c:20352.06},{d:'2026-01-22',c:20337.56},{d:'2026-01-23',c:20383.52},{d:'2026-01-26',c:20378.03},{d:'2026-01-27',c:20450.88},{d:'2026-01-28',c:20459.78},{d:'2026-01-29',c:20539.37},{d:'2026-01-30',c:20537.73},{d:'2026-02-02',c:20518.17},{d:'2026-02-03',c:20424.15},{d:'2026-02-04',c:20547.42},{d:'2026-02-05',c:20701.29},{d:'2026-02-06',c:20818.7},{d:'2026-02-09',c:20855.67},{d:'2026-02-10',c:20822.94},{d:'2026-02-11',c:20837.79},{d:'2026-02-12',c:20872.74},{d:'2026-02-13',c:20954.16},{d:'2026-02-17',c:21070.41},{d:'2026-02-18',c:21107.97},{d:'2026-02-19',c:21120.16},{d:'2026-02-20',c:21252.0},{d:'2026-02-23',c:21217.96},{d:'2026-02-24',c:21267.53},{d:'2026-02-25',c:21441.85},{d:'2026-02-26',c:21547.97},{d:'2026-02-27',c:21723.22},{d:'2026-03-02',c:22748.86},{d:'2026-03-03',c:22516.69},{d:'2026-03-04',c:22807.48},{d:'2026-03-05',c:22748.99},{d:'2026-03-06',c:22387.68},{d:'2026-03-09',c:22695.95},{d:'2026-03-10',c:22697.1},{d:'2026-03-11',c:22716.13},{d:'2026-03-12',c:22311.98},{d:'2026-03-13',c:22105.36},{d:'2026-03-16',c:22374.18},{d:'2026-03-17',c:22479.53},{d:'2026-03-18',c:22152.42},{d:'2026-03-19',c:22090.69},{d:'2026-03-20',c:21647.61},{d:'2026-03-23',c:21946.76},{d:'2026-03-24',c:21761.89},{d:'2026-03-25',c:21929.82},{d:'2026-03-26',c:21408.08},{d:'2026-03-27',c:20948.36},{d:'2026-03-30',c:20794.64},{d:'2026-03-31',c:21590.63},{d:'2026-04-01',c:21840.95},{d:'2026-04-02',c:21879.18},{d:'2026-04-06',c:21996.34},{d:'2026-04-07',c:22017.85},{d:'2026-04-08',c:22634.99},{d:'2026-04-09',c:22822.42},{d:'2026-04-10',c:22902.89},{d:'2026-04-13',c:23183.74},{d:'2026-04-14',c:23639.08},{d:'2026-04-15',c:24016.02},{d:'2026-04-16',c:24102.7}];
+
+const CONFIG = {
+    initialDD: -10,
+    stepDD: -5,
+    maxBatch: 4,
+    rsiPeriod: 14,
+    lookback: 252
+};
+
+let priceData = [];
+
+function initData() {
+    const saved = localStorage.getItem('ndx_history');
+    if (saved) {
+        priceData = JSON.parse(saved);
+    } else {
+        priceData = INIT_DATA.map(x => ({date: x.d, close: x.c}));
     }
-  }catch(e){log('腾讯失败: '+e.message,'fail')}
-  try{
-    log('尝试东方财富...','info');
-    var d=await jp(EM_API,'cb',20000);
-    if(d.rc===0&&d.data&&d.data.klines){
-      var rows=d.data.klines.map(function(x){var p=x.split(',');return[p[0],p[1],p[2],p[3],p[4]]});
-      if(rows.length){proc(rows);sa('st','<span class="s">'+rows.length+'天数据 (东财)</span>');return}
+    const map = new Map();
+    priceData.forEach(p => map.set(p.date, p));
+    priceData = Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+function saveData() {
+    localStorage.setItem('ndx_history', JSON.stringify(priceData));
+    localStorage.setItem('ndx_last_update', new Date().toISOString());
+}
+
+function calcRSI(data, period) {
+    if (data.length < period + 1) return 50;
+    let gains = 0, losses = 0;
+    for (let i = data.length - period; i < data.length; i++) {
+        const change = data[i].close - data[i-1].close;
+        if (change > 0) gains += change;
+        else losses -= change;
     }
-  }catch(e){log('东财失败: '+e.message,'fail')}
-  sa('st','<span class="e">全部失败</span>');err();
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    if (avgLoss === 0) return 100;
+    const rs = avgGain / avgLoss;
+    return 100 - (100 / (1 + rs));
 }
-function proc(rows){
-  D=rows.map(function(x){return{d:x[0],c:+x[2]}});
-  var n=D.length,c=D.map(function(x){return x.c});
-  function sma(p){var r=[];for(var i=0;i<n;i++){if(i<p-1){r.push(null);continue}var s=0;for(var j=0;j<p;j++)s+=c[i-j];r.push(s/p)}return r}
-  var m20=sma(20),m60=sma(60),m120=sma(120);
-  var rsi=(function(){var r=[],g=[],l=[];for(var i=0;i<n;i++){if(!i){r.push(50);g.push(0);l.push(0);continue}var ch=c[i]-c[i-1];g.push(ch>0?ch:0);l.push(ch<0?-ch:0);if(i<14){r.push(50);continue}var sg=0,sl=0;for(var j=i-13;j<=i;j++){sg+=g[j];sl+=l[j]}r.push(sl===0?100:100-100/(1+sg/sl))}return r})();
-  var r60=(function(){var r=[];for(var i=0;i<n;i++){var mx=c[i];for(var j=Math.max(0,i-59);j<=i;j++)if(c[j]>mx)mx=c[j];r.push((c[i]-mx)/mx*100)}return r})();
-  var d120=c.map(function(x,i){return!m120[i]?0:(x-m120[i])/m120[i]*100});
-  var ret=c.map(function(x,i){return!i?0:(x-c[i-1])/c[i-1]});
-  var vol=(function(){var r=[];for(var i=0;i<n;i++){if(i<19){r.push(NaN);continue}var s=0;for(var j=i-19;j<=i;j++)s+=ret[j];var m=s/20;var v=0;for(var j=i-19;j<=i;j++)v+=Math.pow(ret[j]-m,2);r.push(Math.sqrt(v/20)*Math.sqrt(252)*100)}return r})();
-  A={};L=[];var signals=[];
-  for(var i=0;i<n;i++){
-    var sc=0,sg=[],dd=r60[i];
-    if(dd<=-20){sc+=4;sg.push('极度回撤 '+dd.toFixed(1)+'%')}
-    else if(dd<=-15){sc+=3;sg.push('深度回撤 '+dd.toFixed(1)+'%')}
-    else if(dd<=-10){sc+=2;sg.push('中度回撤 '+dd.toFixed(1)+'%')}
-    else if(dd<=-7){sc+=1;sg.push('轻度回撤 '+dd.toFixed(1)+'%')}
-    var rv=rsi[i];
-    if(rv<20){sc+=2;sg.push('RSI极度超卖 '+rv.toFixed(0))}
-    else if(rv<30){sc+=1;sg.push('RSI超卖 '+rv.toFixed(0))}
-    var md=d120[i];
-    if(md<-15){sc+=2;sg.push('严重偏离120日均线 '+md.toFixed(1)+'%')}
-    else if(md<-10){sc+=1;sg.push('偏离120日均线 '+md.toFixed(1)+'%')}
-    if(i>=252){var mn=c[i],mx=c[i];for(var j=i-252;j<i;j++){if(c[j]<mn)mn=c[j];if(c[j]>mx)mx=c[j]}if(mx>mn){var p=(c[i]-mn)/(mx-mn)*100;if(p<20){sc+=1;sg.push('价格处于20%分位')}}}
-    if(i>=60&&!isNaN(vol[i])){var a=0;for(var j=i-60;j<i;j++)a+=isNaN(vol[j])?0:vol[j];a/=60;if(a>0&&vol[i]>a*2){sc+=1;sg.push('恐慌性波动 '+vol[i].toFixed(1)+'%')}}
-    var lv,re;
-    if(sc>=7){lv=3;re='强烈建议加仓'}
-    else if(sc>=5){lv=2;re='建议加仓'}
-    else if(sc>=3){lv=1;re='轻度加仓'}
-    else if(sc>=1&&dd<=-5){lv=0;re='定投机会'}
-    else{lv=-1;re='持有观望'}
-    var item={d:D[i].d,pr:c[i],dd:dd,rs:rv,d120:md,vl:vol[i],sc:sc,sg:sg,lv:lv,re:re};
-    A[D[i].d]=item;L.push(D[i].d);
-    if(lv>=0)signals.push(item);
-  }
-  cd=L[L.length-1];
-  render(A[cd],signals);
-  log('渲染完成: 最新日期 '+cd,'ok');
+
+function calcHigh252(data) {
+    const slice = data.slice(-CONFIG.lookback);
+    return Math.max(...slice.map(d => d.close));
 }
-function render(cur,sigs){
-  var fm=function(v){return v===null||isNaN(v)?'--':((v>0?'+':'')+v.toFixed(2))};
-  var cc=function(v,f){return v===null||isNaN(v)?'u':f(v)};
-  var idx=L.indexOf(cd),ch='';
-  if(idx>0){var p=A[L[idx-1]];if(p){var c=((cur.pr-p.pr)/p.pr*100);ch='<span class="'+(c>=0?'p':'n')+'">'+(c>=0?'▲':'▼')+' '+Math.abs(c).toFixed(2)+'%</span>'}}
-  var sg='';
-  if(cur.sg&&cur.sg.length){var cl=['#10b981','#f59e0b','#f97316','#ef4444'];var co=cur.sc>0?cl[Math.min(cur.lv,3)]:'#374151';sg='<div class="sr"><div class="rt">触发信号</div>'+cur.sg.map(function(x){return'<span class="tg">'+x+'</span>'}).join('')+'<div class="sb"><span class="sl">信号强度</span><div class="br"><div class="bf" style="width:'+(cur.sc/10*100)+'%;background:'+co+'"></div></div><span class="sv">'+cur.sc+'/10</span></div></div>';}
-  var his='';
-  if(sigs.length>0){
-    his='<div class="cd"><div class="ct"><div class="ic" style="background:rgba(245,158,11,0.1);color:#f59e0b">H</div>历史信号 ('+sigs.length+')</div><div class="his">'+sigs.slice().reverse().map(function(s){
-      var bn=['定投','轻度','中度','重度'],bc=['b0','b1','b2','b3'];
-      return '<div class="hi l'+s.lv+'"><div class="hd"><div class="ht">'+s.d+' @ '+s.pr.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="hr">'+s.sg.join(' · ')+'</div></div><div class="hb '+bc[s.lv]+'">'+bn[s.lv]+'</div></div>';
-    }).join('')+'</div></div>';
-  }
-  sa('ca','<div class="cd"><div class="cp"><div class="pv">'+cur.pr.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="pl">纳斯达克综合指数 (IXIC) · '+cd+'</div><div class="pc">'+ch+'</div></div><div class="rc r'+Math.max(cur.lv,0)+'">'+cur.re+'</div>'+sg+'</div><div class="cd"><div class="ct"><div class="ic">M</div>关键指标</div><div class="mg"><div class="mi"><div class="mv '+cc(cur.dd,function(v){return v<=-10?'n':(v<=-5?'w':'p')})+'">'+fm(cur.dd)+'%</div><div class="ml">60日高点回撤</div></div><div class="mi"><div class="mv '+cc(cur.rs,function(v){return v<30?'n':(v>70?'w':'u')})+'">'+fm(cur.rs)+'</div><div class="ml">RSI (14日)</div></div><div class="mi"><div class="mv '+cc(cur.d120,function(v){return v<-10?'n':(v<0?'w':'p')})+'">'+fm(cur.d120)+'%</div><div class="ml">120日均线偏离</div></div><div class="mi"><div class="mv '+cc(cur.vl,function(v){return v>40?'n':(v>25?'w':'u')})+'">'+fm(cur.vl)+'%</div><div class="ml">年化波动率</div></div></div></div>'+his);
+
+function calcChange20D(data) {
+    if (data.length < 21) return 0;
+    const cur = data[data.length-1].close;
+    const prev = data[data.length-21].close;
+    return (cur / prev - 1) * 100;
 }
-function err(){
-  sa('ca','<div class="cd ec"><div style="font-size:28px;margin-bottom:8px">!</div><div style="font-size:16px;margin-bottom:8px">数据获取失败</div><div style="font-size:12px;color:#9ca3af;margin-bottom:12px;line-height:1.8">所有数据源均不可用<br>请使用上方"测试工具"排查原因</div></div>');
+
+function getRiskLevel(dd, rsi, change20d) {
+    if (rsi > 80 || dd > -5 || change20d > 8) return { level: 'high', text: '🔴 高风险', class: 'risk-high' };
+    if (rsi > 70 || dd > -10 || change20d > 5) return { level: 'mid', text: '🟠 中风险', class: 'risk-mid' };
+    if (rsi > 50 || dd > -15) return { level: 'low', text: '🟡 低风险', class: 'risk-low' };
+    return { level: 'min', text: '🟢 极低风险', class: 'risk-min' };
 }
+
+function backtestBuys(data) {
+    const cycles = [];
+    let current = null;
+    
+    for (let i = CONFIG.lookback; i < data.length; i++) {
+        const row = data[i];
+        const slice = data.slice(i - CONFIG.lookback, i + 1);
+        const high252 = Math.max(...slice.map(d => d.close));
+        const dd = (row.close / high252 - 1) * 100;
+        
+        if (current === null && dd <= CONFIG.initialDD) {
+            current = { startDate: row.date, startPrice: row.close, startDD: dd, buys: [{batch:1, price: row.close, dd, date: row.date}], nextThreshold: CONFIG.initialDD + CONFIG.stepDD, lowestDD: dd };
+        } else if (current) {
+            if (dd < current.lowestDD) current.lowestDD = dd;
+            const batchCount = current.buys.length;
+            if (batchCount < CONFIG.maxBatch && dd <= current.nextThreshold) {
+                current.buys.push({batch: batchCount + 1, price: row.close, dd, date: row.date});
+                current.nextThreshold += CONFIG.stepDD;
+            }
+            if (dd > -3 && (new Date(row.date) - new Date(current.startDate)) / 86400000 > 30) {
+                current.endDate = row.date;
+                current.endPrice = row.close;
+                cycles.push(current);
+                current = null;
+            }
+        }
+    }
+    if (current) cycles.push(current);
+    return cycles;
+}
+
+function render() {
+    const last = priceData[priceData.length - 1];
+    const prev = priceData[priceData.length - 2] || last;
+    const high252 = calcHigh252(priceData);
+    const dd = (last.close / high252 - 1) * 100;
+    const rsi = calcRSI(priceData, CONFIG.rsiPeriod);
+    const change20d = calcChange20D(priceData);
+    const change1d = (last.close / prev.close - 1) * 100;
+    const risk = getRiskLevel(dd, rsi, change20d);
+    
+    document.getElementById('currentPrice').textContent = last.close.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const changeEl = document.getElementById('priceChange');
+    changeEl.textContent = (change1d >= 0 ? '+' : '') + change1d.toFixed(2) + '%';
+    changeEl.className = 'price-change ' + (change1d >= 0 ? 'price-up' : 'price-down');
+    
+    const badge = document.getElementById('riskBadge');
+    badge.textContent = risk.text;
+    badge.className = 'risk-badge ' + risk.class;
+    
+    document.getElementById('statDD').textContent = dd.toFixed(1) + '%';
+    document.getElementById('statDD').style.color = dd <= -10 ? 'var(--green)' : (dd <= -5 ? 'var(--yellow)' : 'var(--red)');
+    document.getElementById('statRSI').textContent = rsi.toFixed(1);
+    document.getElementById('statRSI').style.color = rsi > 80 ? 'var(--red)' : (rsi > 70 ? 'var(--orange)' : 'var(--text)');
+    document.getElementById('stat20D').textContent = (change20d >= 0 ? '+' : '') + change20d.toFixed(1) + '%';
+    document.getElementById('stat20D').style.color = change20d > 8 ? 'var(--red)' : (change20d > 5 ? 'var(--orange)' : 'var(--text)');
+    
+    const actionBox = document.getElementById('actionBox');
+    const actionText = document.getElementById('actionText');
+    const actionSub = document.getElementById('actionSub');
+    const nextBuyInfo = document.getElementById('nextBuyInfo');
+    
+    if (risk.level === 'high') {
+        actionBox.className = 'action-box action-stop';
+        actionText.textContent = '❌ 停止买入';
+        actionSub.textContent = '市场过热，新增资金严禁入场，耐心等待回调';
+    } else if (risk.level === 'mid') {
+        actionBox.className = 'action-box action-warn';
+        actionText.textContent = '⏸️ 暂停加仓';
+        actionSub.textContent = '位置偏高，建议观望，不急于进场';
+    } else if (risk.level === 'low') {
+        actionBox.className = 'action-box action-ok';
+        actionText.textContent = '✅ 可以首仓';
+        actionSub.textContent = '回撤达10%，可建首批仓位';
+    } else {
+        actionBox.className = 'action-box action-ok';
+        actionText.textContent = '🚀 全力抄底';
+        actionSub.textContent = '深度回调，建议分批重仓';
+    }
+    
+    const levels = [CONFIG.initialDD, CONFIG.initialDD + CONFIG.stepDD, CONFIG.initialDD + CONFIG.stepDD*2, CONFIG.initialDD + CONFIG.stepDD*3];
+    let nextInfo = '';
+    for (let i = 0; i < levels.length; i++) {
+        if (dd > levels[i]) {
+            const need = (dd - levels[i]).toFixed(1);
+            const targetPrice = (high252 * (1 + levels[i]/100)).toFixed(0);
+            nextInfo = `距离第${i+1}批加仓（回撤${levels[i]}%）还需跌 ${need}%（约${targetPrice}点）`;
+            break;
+        }
+    }
+    if (!nextInfo) nextInfo = '当前处于加仓区间，建议按批次执行';
+    nextBuyInfo.textContent = nextInfo;
+    
+    const alertBar = document.getElementById('alertBar');
+    if (dd <= CONFIG.initialDD) {
+        alertBar.className = 'alert-bar alert-ready';
+        alertBar.innerHTML = '<div class="alert-title">🚀 加仓信号已触发</div><div class="alert-desc">当前回撤达 ' + dd.toFixed(1) + '%，建议执行第1批买入</div>';
+    } else {
+        alertBar.className = 'alert-bar alert-wait';
+        const dist = (dd - CONFIG.initialDD).toFixed(1);
+        alertBar.innerHTML = '<div class="alert-title">⏳ 等待加仓信号</div><div class="alert-desc">距离首仓触发（回撤10%）还需跌 ' + dist + '%</div>';
+    }
+    
+    const cycles = backtestBuys(priceData);
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = cycles.slice().reverse().map(c => {
+        const avgCost = c.buys.reduce((s,b) => s+b.price, 0) / c.buys.length;
+        const endP = c.endPrice || last.close;
+        const profit = ((endP / avgCost - 1) * 100).toFixed(1);
+        const status = c.endDate ? `已归档 (+${profit}%)` : `<span style="color:var(--green)">持仓中 (+${profit}%)</span>`;
+        const tags = c.buys.map(b => `<span class="history-tag tag-batch${b.batch}">${b.batch}批</span>`).join('');
+        return `<div class="history-item">
+            <div>
+                <div style="font-weight:600;">${c.startDate} ${tags}</div>
+                <div class="history-date">${c.buys.length}批买入 成本:${avgCost.toFixed(0)} 最低回撤:${c.lowestDD.toFixed(1)}%</div>
+            </div>
+            <div class="history-info">
+                <div class="history-price">${status}</div>
+                <div class="history-date">${c.endDate || '至今'}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    const activeCycles = cycles.filter(c => !c.endDate);
+    const posEl = document.getElementById('positionInfo');
+    if (activeCycles.length === 0) {
+        posEl.innerHTML = '当前无持仓<br><span style="color:var(--gray)">等待回撤≥10%触发首仓</span>';
+    } else {
+        let html = '';
+        activeCycles.forEach((c, idx) => {
+            const avgCost = c.buys.reduce((s,b) => s+b.price, 0) / c.buys.length;
+            const profit = ((last.close / avgCost - 1) * 100).toFixed(1);
+            const days = Math.floor((new Date(last.date) - new Date(c.startDate)) / 86400000);
+            html += `<div style="margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.03); border-radius:8px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>周期${cycles.length - activeCycles.length + idx + 1} (${c.startDate})</span>
+                    <span style="color:var(--green); font-weight:600;">+${profit}%</span>
+                </div>
+                <div style="color:var(--gray); font-size:12px; margin-top:4px;">
+                    ${c.buys.length}批买入 · 均价${avgCost.toFixed(0)} · 持仓${days}天
+                </div>
+            </div>`;
+        });
+        posEl.innerHTML = html;
+    }
+    
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+}
+
+function fetchRealtime() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://qt.gtimg.cn/q=ixic&_=' + Date.now();
+        script.onload = function() {
+            try {
+                const v = window['v_ixic'];
+                if (v) {
+                    const content = v.replace(/^v_ixic=/, '').replace(/^"/, '').replace(/"$/, '');
+                    const p = content.split(';');
+                    const price = parseFloat(p[1]);
+                    const name = p[0];
+                    if (price > 0) {
+                        resolve({ name, price });
+                    } else {
+                        reject('invalid price');
+                    }
+                } else {
+                    reject('no data');
+                }
+            } catch(e) { reject(e); }
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+function updateRealtime() {
+    fetchRealtime().then(data => {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        
+        const last = priceData[priceData.length - 1];
+        if (last.date === dateStr) {
+            last.close = data.price;
+        } else {
+            priceData.push({ date: dateStr, close: data.price });
+        }
+        saveData();
+        render();
+    }).catch(err => {
+        console.log('实时获取失败，使用缓存:', err);
+        render();
+    });
+}
+
+initData();
+updateRealtime();
+setInterval(updateRealtime, 60000);
 </script>
 </body>
 </html>
