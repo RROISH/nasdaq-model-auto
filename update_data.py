@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-纳指买卖模型 - 三维度优化版 v3.1
-修复：数据源优化 + 稳定性提升
+纳指买卖模型 - 三维度优化版 v3.2
+修复：适配 yfinance 最新版本（移除自定义 session）
 估值(40) + 恐慌(35) + 趋势(25) = 100分
 """
 
@@ -10,13 +10,12 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta
-import requests
 import pandas as pd
 import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
-# 尝试导入yfinance，如失败则安装
+# 尝试导入yfinance
 try:
     import yfinance as yf
 except ImportError:
@@ -24,20 +23,16 @@ except ImportError:
     import yfinance as yf
 
 DATA_FILE = "data/nasdaq_data.json"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 def fetch_with_retry(ticker, period="10y", max_retries=3):
-    """带重试机制的数据获取"""
+    """带重试机制的数据获取（适配 yfinance 最新版）"""
     for attempt in range(max_retries):
         try:
             print(f"  尝试 {attempt+1}/{max_retries}: {ticker}")
-            # 使用session避免被拦截
-            session = requests.Session()
-            session.headers.update({'User-Agent': USER_AGENT})
             
-            # 创建Ticker对象
-            t = yf.Ticker(ticker, session=session)
-            # 获取历史数据，自动调整股息
+            # 关键修复：不再传递自定义 session，让 yfinance 自动处理
+            # 避免 "Yahoo API requires curl_cffi session" 错误
+            t = yf.Ticker(ticker)
             df = t.history(period=period, auto_adjust=True)
             
             if df.empty:
@@ -50,15 +45,11 @@ def fetch_with_retry(ticker, period="10y", max_retries=3):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
             
-            # 标准化列名
+            # 标准化列名（适配不同yfinance版本）
             df = df.rename(columns={
                 'Date': 'Date',
-                'Open': 'Open',
-                'High': 'High', 
-                'Low': 'Low',
                 'Close': 'Close',
-                'Adj Close': 'Close',
-                'Volume': 'Volume'
+                'Adj Close': 'Close'
             })
             
             # 确保Date是datetime类型
@@ -227,13 +218,13 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
         'Signal': [s[0] for s in signals],
         'Signal_Desc': [s[1] for s in signals],
         'Details': details,
-        'Index_Type': ticker_used  # 记录使用的指数类型
+        'Index_Type': ticker_used
     })
     
     return result
 
 def main():
-    print(f"=== 纳指模型 v3.1 (数据源优化版) ===")
+    print(f"=== 纳指模型 v3.2 (yfinance兼容版) ===")
     print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"工作目录: {os.getcwd()}")
     
@@ -282,7 +273,7 @@ def main():
             'last_update': datetime.now().isoformat(),
             'data_source': 'yahoo_finance',
             'index_used': ticker_used,
-            'version': '3.1',
+            'version': '3.2',
             'daily_data': old_data
         }
         
