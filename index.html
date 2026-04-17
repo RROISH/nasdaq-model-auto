@@ -11,7 +11,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .h{text-align:center;padding:14px 0;border-bottom:1px solid #374151;margin-bottom:14px}
 .h h1{font-size:22px;background:linear-gradient(135deg,#00d9ff,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
 .h p{color:#9ca3af;font-size:12px}
-.st{text-align:center;padding:6px;font-size:12px;color:#9ca3af;margin-bottom:12px}
+.st{text-align:center;padding:6px;font-size:12px;color:#9ca3af;margin-bottom:12px;min-height:20px}
 .st .e{color:#ef4444}.st .s{color:#10b981}.st .i{color:#00d9ff}.st .w{color:#f59e0b}
 .cd{background:#1f2937;border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid #374151}
 .cp{text-align:center;padding:10px 0 4px}
@@ -57,55 +57,123 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .ft{text-align:center;padding:16px;color:#9ca3af;font-size:10px}
 .ec{text-align:center;padding:30px;color:#9ca3af;font-size:14px}
 .rb{padding:8px 20px;border-radius:6px;border:1px solid #00d9ff;background:rgba(0,217,255,.1);color:#00d9ff;font-size:13px;cursor:pointer;margin-top:12px;display:inline-block}
+.test-panel{background:#111827;border-radius:10px;padding:12px;margin-top:12px;font-size:11px;color:#9ca3af;border:1px solid #374151}
+.test-panel b{color:#f3f4f6}
+.test-btn{display:block;width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#f3f4f6;font-size:13px;cursor:pointer;text-align:left}
+.test-btn:hover{background:#374151}
+.test-btn.ok{border-color:#10b981;color:#10b981}
+.test-btn.fail{border-color:#ef4444;color:#ef4444}
+.log{max-height:150px;overflow-y:auto;background:#0a0e1a;padding:8px;border-radius:6px;margin-top:8px;font-family:monospace;font-size:10px;line-height:1.6}
+.log .ok{color:#10b981}.log .fail{color:#ef4444}.log .info{color:#00d9ff}
 </style>
 </head>
 <body>
 <div class="c">
 <div class="h"><h1>纳指加仓模型</h1><p>国内数据源 · 实时计算</p></div>
-<div class="st" id="st"><span class="i">获取数据中...</span></div>
-<div id="ca"><div class="cd ec"><div style="font-size:32px;margin-bottom:8px">...</div><div>连接数据源...</div></div></div>
+<div class="st" id="st"><span class="i">等待测试...</span></div>
+<div id="ca">
+<div class="cd">
+<div class="ct"><div class="ic">T</div>测试工具</div>
+<div style="font-size:13px;color:#9ca3af;margin-bottom:12px">点击下方按钮逐一测试数据源连通性</div>
+<button class="test-btn" id="btn1" onclick="testTx()">1. 测试腾讯财经接口</button>
+<button class="test-btn" id="btn2" onclick="testEm()">2. 测试东方财富接口</button>
+<button class="test-btn" id="btn3" onclick="testDirect()">3. 测试直接加载数据</button>
+<div class="log" id="log"></div>
+<div class="test-panel">
+<b>环境检测:</b><br>
+协议: <span id="proto">--</span><br>
+主机: <span id="host">--</span><br>
+在线状态: <span id="online">--</span>
+</div>
+</div>
+</div>
 <div class="ft">仅供参考，不构成投资建议</div>
 </div>
 <script>
-const TX_API='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=usr_ixic,day,2023-01-01,2026-12-31,800';
+function log(msg,cls){
+  var d=document.getElementById('log');
+  d.innerHTML+='<div class="'+(cls||'info')+'">['+new Date().toLocaleTimeString()+'] '+msg+'</div>';
+  d.scrollTop=d.scrollHeight;
+}
+document.getElementById('proto').textContent=location.protocol;
+document.getElementById('host').textContent=location.host||'localhost';
+document.getElementById('online').textContent=navigator.onLine?'在线':'离线';
+if(location.protocol==='file:'){
+  log('警告: 当前使用 file:// 协议，JSONP请求可能被拦截','fail');
+  log('请使用本地HTTP服务器测试 (python -m http.server 8000)','info');
+}
+function jp(url,cp,timeout){
+  return new Promise(function(res,rej){
+    var cb='CB'+Date.now()+Math.floor(Math.random()*1000);
+    var sc=document.createElement('script');
+    sc.src=url+'&'+cp+'='+cb;
+    sc.async=true;
+    var done=false;
+    function finish(e,d){if(done)return;done=true;clean();if(e)rej(e);else res(d)}
+    function clean(){clearTimeout(t);delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc)}
+    sc.onerror=function(){finish(new Error('script load error'))};
+    sc.onload=function(){setTimeout(function(){if(!done)finish(new Error('no callback'))},3000)};
+    window[cb]=function(d){finish(null,d)};
+    var t=setTimeout(function(){finish(new Error('timeout 20s'))},timeout||20000);
+    document.head.appendChild(sc);
+  });
+}
+async function testTx(){
+  log('测试腾讯财经...','info');
+  var btn=document.getElementById('btn1');btn.className='test-btn';
+  try{
+    var url='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=usr_ixic,day,,,10';
+    var d=await jp(url,'_cb',10000);
+    if(d.code===0&&d.data&&d.data.usr_ixic){
+      var arr=d.data.usr_ixic.day||d.data.usr_ixic.qfqday;
+      log('腾讯成功: 返回'+arr.length+'条数据','ok');
+      btn.className='test-btn ok';btn.innerHTML='1. 腾讯财经 ✓ 正常 ('+arr.length+'条)';
+    }else{log('腾讯返回异常','fail');btn.className='test-btn fail';}
+  }catch(e){log('腾讯失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='1. 腾讯财经 ✗ 失败';}
+}
+async function testEm(){
+  log('测试东方财富...','info');
+  var btn=document.getElementById('btn2');btn.className='test-btn';
+  try{
+    var url='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=100.IXIC&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=0&end=20500101&lmt=10';
+    var d=await jp(url,'cb',10000);
+    if(d.rc===0&&d.data&&d.data.klines){
+      log('东财成功: 返回'+d.data.klines.length+'条数据','ok');
+      btn.className='test-btn ok';btn.innerHTML='2. 东方财富 ✓ 正常 ('+d.data.klines.length+'条)';
+    }else{log('东财返回异常: rc='+d.rc,'fail');btn.className='test-btn fail';}
+  }catch(e){log('东财失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='2. 东方财富 ✗ 失败';}
+}
+async function testDirect(){
+  log('直接加载全量数据...','info');
+  var btn=document.getElementById('btn3');btn.className='test-btn';
+  try{await ld();btn.className='test-btn ok';btn.innerHTML='3. 直接加载 ✓ 成功';}
+  catch(e){log('直接加载失败: '+e.message,'fail');btn.className='test-btn fail';btn.innerHTML='3. 直接加载 ✗ 失败';}
+}
+const TX_API='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=usr_ixic,day,,,800';
 const EM_API='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=100.IXIC&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=0&end=20500101&lmt=800';
 let D=[],A={},L=[],cd=null;
 function ge(id){return document.getElementById(id)}
 function sa(id,h){ge(id).innerHTML=h}
-
-function jp(url,cp){
-  return new Promise(function(res,rej){
-    var cb='cb_'+Date.now()+Math.floor(Math.random()*1000);
-    var sc=document.createElement('script');
-    sc.src=url+'&'+cp+'='+cb;
-    sc.onerror=function(){rej(new Error('load'));clean()};
-    window[cb]=function(d){res(d);clean()};
-    var t=setTimeout(function(){rej(new Error('timeout'));clean()},15000);
-    function clean(){clearTimeout(t);delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc)}
-    document.head.appendChild(sc);
-  });
-}
-
 async function ld(){
-  sa('st','<span class="i">连接腾讯财经...</span>');
+  sa('st','<span class="i">获取数据中...</span>');
   try{
-    var t=await jp(TX_API,'_cb');
-    if(t.code===0&&t.data&&t.data.usr_ixic){
-      var d=t.data.usr_ixic.day||t.data.usr_ixic.qfqday;
-      if(d&&d.length){proc(d);sa('st','<span class="s">'+d.length+' 天数据 (腾讯)</span>');return}
+    log('尝试腾讯财经...','info');
+    var d=await jp(TX_API,'_cb',20000);
+    if(d.code===0&&d.data&&d.data.usr_ixic){
+      var arr=d.data.usr_ixic.day||d.data.usr_ixic.qfqday;
+      if(arr&&arr.length){proc(arr);sa('st','<span class="s">'+arr.length+'天数据 (腾讯)</span>');return}
     }
-  }catch(e){}
-  sa('st','<span class="w">尝试东方财富...</span>');
+  }catch(e){log('腾讯失败: '+e.message,'fail')}
   try{
-    var em=await jp(EM_API,'cb');
-    if(em.rc===0&&em.data&&em.data.klines){
-      var d=em.data.klines.map(function(x){var p=x.split(',');return[p[0],p[1],p[2],p[3],p[4]]});
-      if(d.length){proc(d);sa('st','<span class="s">'+d.length+' 天数据 (东财)</span>');return}
+    log('尝试东方财富...','info');
+    var d=await jp(EM_API,'cb',20000);
+    if(d.rc===0&&d.data&&d.data.klines){
+      var rows=d.data.klines.map(function(x){var p=x.split(',');return[p[0],p[1],p[2],p[3],p[4]]});
+      if(rows.length){proc(rows);sa('st','<span class="s">'+rows.length+'天数据 (东财)</span>');return}
     }
-  }catch(e){}
-  sa('st','<span class="e">数据获取失败</span>');err();
+  }catch(e){log('东财失败: '+e.message,'fail')}
+  sa('st','<span class="e">全部失败</span>');err();
 }
-
 function proc(rows){
   D=rows.map(function(x){return{d:x[0],c:+x[2]}});
   var n=D.length,c=D.map(function(x){return x.c});
@@ -116,7 +184,6 @@ function proc(rows){
   var d120=c.map(function(x,i){return!m120[i]?0:(x-m120[i])/m120[i]*100});
   var ret=c.map(function(x,i){return!i?0:(x-c[i-1])/c[i-1]});
   var vol=(function(){var r=[];for(var i=0;i<n;i++){if(i<19){r.push(NaN);continue}var s=0;for(var j=i-19;j<=i;j++)s+=ret[j];var m=s/20;var v=0;for(var j=i-19;j<=i;j++)v+=Math.pow(ret[j]-m,2);r.push(Math.sqrt(v/20)*Math.sqrt(252)*100)}return r})();
-  
   A={};L=[];var signals=[];
   for(var i=0;i<n;i++){
     var sc=0,sg=[],dd=r60[i];
@@ -138,41 +205,33 @@ function proc(rows){
     else if(sc>=3){lv=1;re='轻度加仓'}
     else if(sc>=1&&dd<=-5){lv=0;re='定投机会'}
     else{lv=-1;re='持有观望'}
-    
     var item={d:D[i].d,pr:c[i],dd:dd,rs:rv,d120:md,vl:vol[i],sc:sc,sg:sg,lv:lv,re:re};
     A[D[i].d]=item;L.push(D[i].d);
     if(lv>=0)signals.push(item);
   }
   cd=L[L.length-1];
   render(A[cd],signals);
+  log('渲染完成: 最新日期 '+cd,'ok');
 }
-
 function render(cur,sigs){
   var fm=function(v){return v===null||isNaN(v)?'--':((v>0?'+':'')+v.toFixed(2))};
   var cc=function(v,f){return v===null||isNaN(v)?'u':f(v)};
-  
-  var ch='';
-  var idx=L.indexOf(cd);
+  var idx=L.indexOf(cd),ch='';
   if(idx>0){var p=A[L[idx-1]];if(p){var c=((cur.pr-p.pr)/p.pr*100);ch='<span class="'+(c>=0?'p':'n')+'">'+(c>=0?'▲':'▼')+' '+Math.abs(c).toFixed(2)+'%</span>'}}
-  
   var sg='';
   if(cur.sg&&cur.sg.length){var cl=['#10b981','#f59e0b','#f97316','#ef4444'];var co=cur.sc>0?cl[Math.min(cur.lv,3)]:'#374151';sg='<div class="sr"><div class="rt">触发信号</div>'+cur.sg.map(function(x){return'<span class="tg">'+x+'</span>'}).join('')+'<div class="sb"><span class="sl">信号强度</span><div class="br"><div class="bf" style="width:'+(cur.sc/10*100)+'%;background:'+co+'"></div></div><span class="sv">'+cur.sc+'/10</span></div></div>';}
-  
   var his='';
   if(sigs.length>0){
     his='<div class="cd"><div class="ct"><div class="ic" style="background:rgba(245,158,11,0.1);color:#f59e0b">H</div>历史信号 ('+sigs.length+')</div><div class="his">'+sigs.slice().reverse().map(function(s){
-      var bn=['定投','轻度','中度','重度'];
-      var bc=['b0','b1','b2','b3'];
+      var bn=['定投','轻度','中度','重度'],bc=['b0','b1','b2','b3'];
       return '<div class="hi l'+s.lv+'"><div class="hd"><div class="ht">'+s.d+' @ '+s.pr.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="hr">'+s.sg.join(' · ')+'</div></div><div class="hb '+bc[s.lv]+'">'+bn[s.lv]+'</div></div>';
     }).join('')+'</div></div>';
   }
-  
   sa('ca','<div class="cd"><div class="cp"><div class="pv">'+cur.pr.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div><div class="pl">纳斯达克综合指数 (IXIC) · '+cd+'</div><div class="pc">'+ch+'</div></div><div class="rc r'+Math.max(cur.lv,0)+'">'+cur.re+'</div>'+sg+'</div><div class="cd"><div class="ct"><div class="ic">M</div>关键指标</div><div class="mg"><div class="mi"><div class="mv '+cc(cur.dd,function(v){return v<=-10?'n':(v<=-5?'w':'p')})+'">'+fm(cur.dd)+'%</div><div class="ml">60日高点回撤</div></div><div class="mi"><div class="mv '+cc(cur.rs,function(v){return v<30?'n':(v>70?'w':'u')})+'">'+fm(cur.rs)+'</div><div class="ml">RSI (14日)</div></div><div class="mi"><div class="mv '+cc(cur.d120,function(v){return v<-10?'n':(v<0?'w':'p')})+'">'+fm(cur.d120)+'%</div><div class="ml">120日均线偏离</div></div><div class="mi"><div class="mv '+cc(cur.vl,function(v){return v>40?'n':(v>25?'w':'u')})+'">'+fm(cur.vl)+'%</div><div class="ml">年化波动率</div></div></div></div>'+his);
 }
-
-function err(){sa('ca','<div class="cd ec"><div style="font-size:28px;margin-bottom:8px">!</div><div style="font-size:16px;margin-bottom:8px">数据获取失败</div><div style="font-size:12px;color:#9ca3af;margin-bottom:12px">腾讯财经 / 东方财富 均连接失败<br>请检查网络后重试</div><button class="rb" onclick="ld()">重试</button></div>');}
-
-document.addEventListener('DOMContentLoaded',ld);
+function err(){
+  sa('ca','<div class="cd ec"><div style="font-size:28px;margin-bottom:8px">!</div><div style="font-size:16px;margin-bottom:8px">数据获取失败</div><div style="font-size:12px;color:#9ca3af;margin-bottom:12px;line-height:1.8">所有数据源均不可用<br>请使用上方"测试工具"排查原因</div></div>');
+}
 </script>
 </body>
 </html>
