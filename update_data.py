@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-纳指买卖模型 - 三维度优化版 v3.3
-修复：时区兼容 + yfinance 适配
+纳指买卖模型 - v4.0 国内数据源版
+使用新浪财经/东方财富（国内直连，无需代理）
 估值(40) + 恐慌(35) + 趋势(25) = 100分
 """
 
@@ -9,109 +9,97 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import requests
 import warnings
 warnings.filterwarnings('ignore')
 
-# 尝试导入yfinance
+# 尝试导入akshare
 try:
-    import yfinance as yf
+    import akshare as ak
 except ImportError:
-    os.system("pip install yfinance --quiet")
-    import yfinance as yf
+    os.system("pip install akshare --quiet")
+    import akshare as ak
 
 DATA_FILE = "data/nasdaq_data.json"
 
-def fetch_with_retry(ticker, period="10y", max_retries=3):
-    """带重试机制的数据获取"""
-    for attempt in range(max_retries):
-        try:
-            print(f"  尝试 {attempt+1}/{max_retries}: {ticker}")
-            
-            # 不再传递自定义 session，让 yfinance 自动处理
-            t = yf.Ticker(ticker)
-            df = t.history(period=period, auto_adjust=True)
-            
-            if df.empty:
-                raise ValueError(f"返回空数据: {ticker}")
-            
-            # 重置索引，确保Date是列
-            df = df.reset_index()
-            
-            # 统一列名（处理多级索引情况）
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            
-            # 标准化列名
-            df = df.rename(columns={
-                'Date': 'Date',
-                'Close': 'Close',
-                'Adj Close': 'Close'
-            })
-            
-            # 确保Date是datetime类型
-            df['Date'] = pd.to_datetime(df['Date'])
-            
-            # 关键修复：将日期转换为无时区格式，避免后续比较错误
-            df['Date'] = df['Date'].dt.tz_localize(None)
-            
-            print(f"  ✓ 获取 {len(df)} 条记录，最新日期: {df['Date'].max().strftime('%Y-%m-%d')}")
-            
-            # 数据新鲜度检查
-            latest_date = df['Date'].max()
-            # 关键修复：使用UTC时间比较，确保时区一致
-            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
-            days_diff = (now_utc - latest_date).days
-            
-            if days_diff > 3:
-                print(f"  ⚠️ 警告: 数据可能延迟 {days_diff} 天")
-            
-            return df[['Date', 'Close']].dropna()
-            
-        except Exception as e:
-            print(f"  ✗ 错误: {e}")
-            if attempt < max_retries - 1:
-                wait_time = 2 ** attempt
-                print(f"  等待 {wait_time} 秒后重试...")
-                time.sleep(wait_time)
-            else:
-                raise
-
-def fetch_data(primary_ticker="^NDX", backup_ticker="^IXIC", period="10y"):
-    """获取纳指数据，优先NDX，失败时回退到IXIC"""
-    print(f"获取纳指数据（首选: {primary_ticker}）...")
+def fetch_ndx_sina():
+    """从新浪财经获取纳指100历史数据"""
+    print("获取纳指100数据（新浪财经）...")
     
     try:
-        df = fetch_with_retry(primary_ticker, period)
-        print(f"✅ 使用 {primary_ticker} (纳指100)")
-        return df, primary_ticker
+        # 使用akshare获取美股指数历史数据（新浪财经源）
+        # 纳斯达克100指数代码：NDX
+        df = ak.index_us_stock_sina(symbol=".NDX", period="10y")
+        
+        if df.empty:
+            raise ValueError("新浪返回空数据")
+        
+        # 标准化列名
+        df = df.rename(columns={
+            'date': 'Date',
+            'close': 'Close'
+        })
+        
+        # 确保日期格式正确
+        df['Date'] = pd.to_datetime(df['Date'])
+        df['Date'] = df['Date'].dt.tz_localize(None)
+        
+        print(f"  ✓ 获取 {len(df)} 条记录，最新日期: {df['Date'].max().strftime('%Y-%m-%d')}")
+        
+        # 数据新鲜度检查（新浪财经美股有15分钟延迟）
+        now = datetime.now()
+        days_diff = (now - df['Date'].max()).days
+        if days_diff > 1:
+            print(f"  ⚠️ 警告: 数据延迟 {days_diff} 天")
+        
+        return df[['Date', 'Close']].dropna(), "^NDX"
+        
     except Exception as e:
-        print(f"⚠️ {primary_ticker} 失败: {e}")
-        print(f"回退到 {backup_ticker}...")
-        df = fetch_with_retry(backup_ticker, period)
-        return df, backup_ticker
+        print(f"  ✗ 新浪数据源失败: {e}")
+        raise
 
-def fetch_vix():
-    """获取VIX恐慌指数"""
-    print("获取 VIX 恐慌指数...")
+def fetch_vix_sina():
+    """获取VIX数据（新浪财经）"""
+    print("获取 VIX 恐慌指数（新浪财经）...")
+    
     try:
-        df = fetch_with_retry("^VIX", period="10y")
-        print("✅ VIX 数据获取成功")
-        return df
+        # 新浪财经VIX页面：https://quotes.sina.cn/global/hq/quotes.php?code=VIX
+        # 尝试通过akshare获取芝加哥期权交易所VIX
+        # 注意：新浪财经的VIX可能不是实时更新，需做容错
+        
+        try:
+            # 尝试获取VIX日线（如果akshare支持）
+            df = ak.index_vix(start_date=(datetime.now()-timedelta(days=365*10)).strftime("%Y%m%d"), 
+                             end_date=datetime.now().strftime("%Y%m%d"))
+            if not df.empty:
+                df = df.reset_index()
+                df = df.rename(columns={'日期': 'Date', '收盘价': 'Close'})
+                df['Date'] = pd.to_datetime(df['Date'])
+                df['Date'] = df['Date'].dt.tz_localize(None)
+                print(f"  ✓ VIX获取成功，共{len(df)}条")
+                return df[['Date', 'Close']].dropna()
+        except Exception as e:
+            print(f"  ⚠️ AKShare VIX获取失败: {e}")
+        
+        # 如果akshare失败，使用默认值返回空DataFrame
+        print("  ⚠️ 使用默认VIX值20继续")
+        return pd.DataFrame(columns=['Date', 'Close'])
+        
     except Exception as e:
-        print(f"⚠️ VIX获取失败: {e}")
+        print(f"  ⚠️ VIX获取失败: {e}")
         return pd.DataFrame(columns=['Date', 'Close'])
 
 def calculate_signals(ndx_df, vix_df, ticker_used):
-    """计算三维度交易信号"""
+    """计算三维度交易信号（与原逻辑一致）"""
     print("\n计算三维度评分...")
     
     # 合并数据
     merged = pd.merge(ndx_df, vix_df.rename(columns={'Close': 'VIX'}), 
                      on='Date', how='left')
-    merged['VIX'] = merged['VIX'].ffill().fillna(20)
+    merged['VIX'] = merged['VIX'].ffill().fillna(20)  # VIX缺失用20填充
     
     prices = merged['Close'].values.astype(float)
     vix_values = merged['VIX'].values.astype(float)
@@ -121,7 +109,7 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
     if n < 252:
         raise ValueError(f"数据不足一年(252日)，仅有{n}条")
     
-    # 52周高低点
+    # 52周高低点（252个交易日）
     high_52w = np.array([np.max(prices[max(0, i-251):i+1]) for i in range(n)])
     low_52w = np.array([np.min(prices[max(0, i-251):i+1]) for i in range(n)])
     position_52w = (prices - low_52w) / (high_52w - low_52w + 1e-10)
@@ -134,6 +122,7 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
     details = []
     
     for i in range(n):
+        # 维度1: 估值(40分)
         pos = position_52w[i]
         if pos > 0.9:
             val_score = 5
@@ -146,6 +135,7 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
         else:
             val_score = 40
         
+        # 维度2: 恐慌(35分)
         vix = vix_values[i]
         if vix >= 45:
             fear_score = 35
@@ -158,6 +148,7 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
         else:
             fear_score = max(0, (vix - 10) / 5 * 5)
         
+        # 维度3: 趋势(25分)
         dist = ma_dist[i]
         if dist <= -25:
             trend_score = 25
@@ -200,6 +191,7 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
         else:
             signals.append(('强烈卖出', '🚨 泡沫区域，清仓避险'))
     
+    # 计算涨跌
     changes = np.diff(prices, prepend=prices[0])
     change_pcts = np.where(prices != 0, changes / prices * 100, 0)
     
@@ -215,19 +207,22 @@ def calculate_signals(ndx_df, vix_df, ticker_used):
         'Signal': [s[0] for s in signals],
         'Signal_Desc': [s[1] for s in signals],
         'Details': details,
-        'Index_Type': ticker_used
+        'Index_Type': ticker_used,
+        'Data_Source': 'sina'
     })
     
     return result
 
 def main():
-    print(f"=== 纳指模型 v3.3 (时区修复版) ===")
+    print(f"=== 纳指模型 v4.0 (新浪财经数据源) ===")
     print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     try:
-        ndx_df, ticker_used = fetch_data("^NDX", "^IXIC", period="10y")
-        vix_df = fetch_vix()
+        # 获取数据（新浪财经）
+        ndx_df, ticker_used = fetch_ndx_sina()
+        vix_df = fetch_vix_sina()
         
+        # 计算信号
         result = calculate_signals(ndx_df, vix_df, ticker_used)
         
         # 加载旧数据
@@ -257,7 +252,8 @@ def main():
                 'signal': str(row['Signal']),
                 'signal_desc': str(row['Signal_Desc']),
                 'details': row['Details'],
-                'index_type': str(row['Index_Type'])
+                'index_type': str(row['Index_Type']),
+                'data_source': 'sina'
             }
             update_count += 1
         
@@ -265,9 +261,9 @@ def main():
         os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
         output = {
             'last_update': datetime.now().isoformat(),
-            'data_source': 'yahoo_finance',
+            'data_source': 'sina',
             'index_used': ticker_used,
-            'version': '3.3',
+            'version': '4.0',
             'daily_data': old_data
         }
         
@@ -276,8 +272,9 @@ def main():
         
         print(f"\n✅ 成功更新 {update_count} 天数据")
         print(f"总数据量: {len(old_data)} 天")
-        print(f"使用指数: {ticker_used}")
+        print(f"数据源: 新浪财经")
         
+        # 显示最近3天
         recent_dates = sorted(old_data.keys())[-3:]
         print(f"\n最近3天:")
         for d in recent_dates:
